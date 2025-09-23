@@ -3,7 +3,9 @@ name = "receipts-project"
 version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "dotenv>=0.9.9",
+]
 
 
 [dependency-groups]
