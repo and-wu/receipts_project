@@ -1,6 +1,7 @@
 from aiogram import Router, F
 from aiogram.filters import CommandStart, Command
 from aiogram.types import Message
+from ..logic.paddleOCR_logic import save_photo, process_receipt
 
 router = Router()
 
@@ -20,25 +21,24 @@ async def send_help(message: Message):
 async def process_photo(message: Message):
     await message.answer(f'Обрабатываю полученное фото')
 
-    # берём фото в наилучшем качестве
+    # Берём фото в максимальном качестве
     photo = message.photo[-1]
     file = await message.bot.get_file(photo.file_id)
 
-    # скачиваем фото
-    file_path = file.file_path
-    downloaded = await message.bot.download_file(file_path)
+    # Скачиваем в память
+    photo_bytes = await message.bot.download_file(file.file_path, destination=None)
 
-    # сохраняем временно
-    image_path = "check.jpg"
-    with open(image_path, "wb") as f:
-        f.write(downloaded.read())
+    # Сохраняем на диск
+    file_path = save_photo(photo_bytes, message.message_id)
 
-    # OCR (распознавание текста)
-    text = pytesseract.image_to_string(Image.open(image_path), lang="rus+eng")
+    # Обрабатываем чек (OCR)
+    text_lines = process_receipt(file_path)
 
     # Отправляем результат
-    if text.strip():
-        await message.answer(f"📄 Я нашёл такой текст:\n\n<code>{text}</code>")
+    if text_lines:
+        response = "🧾 Распознанный чек:\n\n" + "\n".join(text_lines)
     else:
-        await message.answer("⚠️ Не удалось распознать текст на чеке.")
+        response = "Не удалось распознать чек 😔"
+
+    await message.answer(response)
 
