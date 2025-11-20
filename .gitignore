@@ -4,3 +4,4 @@ __pycache__/
 .env
 checks/
 checks_ocr_json/
+src/receipts-sheet-d1198145dbde.json
