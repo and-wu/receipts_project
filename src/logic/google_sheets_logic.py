@@ -1,8 +1,15 @@
+import json
+import os
 from asyncio.log import logger
 import asyncio
 import gspread
+from dotenv import load_dotenv
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
+
+# Загружаем переменные из .env
+load_dotenv()
+
 
 # Подключение к Google Sheets
 scope = [
@@ -10,7 +17,16 @@ scope = [
     "https://www.googleapis.com/auth/drive"
 ]
 
-creds = ServiceAccountCredentials.from_json_keyfile_name("receipts-sheet-d1198145dbde.json", scope)
+
+# Читаем JSON из переменной окружения
+key_data = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
+if not key_data:
+    raise ValueError("Не найдена переменная окружения GOOGLE_SERVICE_ACCOUNT_JSON")
+
+
+# Создаём credentials из словаря
+creds = ServiceAccountCredentials.from_json_keyfile_dict(json.loads(key_data), scope)
+#creds = ServiceAccountCredentials.from_json_keyfile_name("receipts-sheet-d1198145dbde.json", scope)
 client = gspread.authorize(creds)
 
 # Открываем таблицу
