@@ -7,6 +7,12 @@ WORKDIR /app
 # Копируем файл зависимостей в контейнер
 COPY requirements.txt .
 
+# добавляем в Dockerfile установку необходимых библиотек (например libGL.so.1)
+RUN apt-get update && apt-get install -y \
+    libgl1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
 # Устанавливаем зависимости
 RUN pip install --no-cache-dir -r requirements.txt
 
