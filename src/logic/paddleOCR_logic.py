@@ -40,6 +40,7 @@ def process_receipt(file_path: str) -> list[str]:
         img_array = np.array(img)
         results = ocr.ocr(img_array)
 
+
         if not results or not results[0]:
             print("Попробуем с предобработкой...")
             # Если не получилось, применяем предобработку
@@ -55,37 +56,44 @@ def process_receipt(file_path: str) -> list[str]:
 
         parser = OCRReceiptParser()
 
+        info_for_answer = {}
+
         try:
             # Парсим данные
             result = parser.parse_ocr_result(results)
+
+            info_for_answer["date"] = result["receipt_info"]["date"]
+            info_for_answer["time"] = result["receipt_info"]["time"]
+            info_for_answer["total_sum"] = result["totals"]["total_to_pay"]
 
             # Выводим результат
             print("Результат парсинга:")
             print(json.dumps(result, ensure_ascii=False, indent=2))
 
             # Сохраняем в файл
-            parser.save_to_json(result, "receipt.json")
-            print("\nДанные сохранены в файл 'receipt.json'")
+            parser.save_to_json(result, f"{file_path}_receipt.json")
+            print(f"\nДанные сохранены в файл {file_path}_receipt.json")
 
         except Exception as e:
             print(f"Ошибка при парсинге: {e}")
 
-
+        return info_for_answer
 
         texts = []
 
-        if results:
-            for line in results[0]:  # иногда results[0] тоже может быть пустым
-                try:
-                    box, (text, confidence) = line
-                    texts.append(text)
-                except Exception:
-                    continue
+
+        if results and "rec_texts" in results[0]:
+            rec_texts = results[0]["rec_texts"]
+            rec_scores = results[0]["rec_scores"]
+
+            for text, confidence in zip(rec_texts, rec_scores):
+                print("text:", text, "| confidence:", confidence)
+                texts.append(text)
 
         if not texts:
             print("Текст не найден на изображении")
         else:
-            print(texts)
+            print("Распознанные строки:", texts)
             return texts
 
     except Exception as e:

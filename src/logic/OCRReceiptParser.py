@@ -36,14 +36,19 @@ class OCRReceiptParser:
         if not texts:
             raise ValueError("Не найдены распознанные тексты в OCR данных")
 
+        print("вот текст перед парсингом", texts)
+
         # Парсим основную информацию
         receipt_info = self._extract_receipt_info(texts)
+        print("спарсили основную информацию", receipt_info)
 
         # Парсим товары
         items = self._extract_items(texts)
+        print("спарсили товары", items)
 
         # Парсим итоговую сумму
         totals = self._extract_totals(texts)
+        print("спарсили итоговую сумму", totals)
 
         return {
             "receipt_info": receipt_info,
@@ -61,12 +66,37 @@ class OCRReceiptParser:
             "receipt_number": ""
         }
 
+
         # Ищем название магазина (обычно в начале)
-        for i, text in enumerate(texts[:10]):
-            if len(text) > 5 and any(char.isalpha() for char in text):
-                if not any(keyword in text.lower() for keyword in ['унп', 'код', 'номер', '№']):
-                    info["store"] = text.strip()
-                    break
+        # Возможные стоп-слова
+        stop_words = ["унп", "код", "номер", "чек", "касса", "итого", "сумма", "пратекный"]
+
+        # Ключевые слова, характерные для магазинов
+        store_keywords = ["ооо", "зао", "ип", "магазин", "супермаркет", "универсам", "market"]
+
+        candidate = ""
+        for text in texts[:10]:  # смотрим только первые 10 строк
+            clean = text.strip()
+            lower = clean.lower()
+
+            if len(clean) < 3:  # слишком короткие строки пропускаем
+                continue
+            if sum(c.isdigit() for c in clean) > len(clean) / 2:  # если больше половины цифр
+                continue
+            if any(word in lower for word in stop_words):
+                continue
+
+            # если есть ключевое слово - почти наверняка магазин
+            if any(word in lower for word in store_keywords):
+                info["store"] = clean
+                return info
+
+            # сохраняем как кандидата, если строка длиннее
+            if len(clean) > len(candidate):
+                candidate = clean
+
+        info["store"] = candidate
+
 
         # Ищем дату и время
         for text in texts:
@@ -84,7 +114,7 @@ class OCRReceiptParser:
                 # Извлекаем имя после слова "кассир"
                 parts = text.split()
                 if len(parts) > 1:
-                    info["cashier"] = " ".join(parts[1:]).split()[0:2]
+                    info["cashier"] = " ".join(parts[1:3])
                     info["cashier"] = " ".join(info["cashier"])
 
         # Ищем номер чека
@@ -196,35 +226,66 @@ class OCRReceiptParser:
         digit_count = sum(1 for char in text if char.isdigit())
         return digit_count > len(text) * 0.7
 
+
     def _extract_totals(self, texts: List[str]) -> Dict[str, Any]:
-        """Извлекает итоговые суммы"""
+        """Извлекает итоговые суммы с учётом скидок"""
         totals = {
-            "subtotal": 0.0,
-            "total_to_pay": 0.0,
+            "subtotal": 0.0,  # до скидки (если есть)
+            "total_to_pay": 0.0,  # окончательная сумма к оплате
             "payment_method": ""
         }
 
-        # Ищем общую сумму
-        for text in texts:
-            # Ищем строку с итоговой суммой
-            total_match = re.search(self.total_pattern, text, re.IGNORECASE)
-            if total_match:
-                total_str = total_match.group(1).replace(',', '.')
-                try:
-                    total_amount = float(total_str)
-                    totals["subtotal"] = total_amount
-                    totals["total_to_pay"] = total_amount
-                except ValueError:
-                    continue
+        all_amounts = []  # все найденные суммы
+        subtotal_candidates = []  # промежуточные (ИТОГО, ВСЕГО)
+        final_candidates = []  # финальные (К ОПЛАТЕ, TOTAL, ИТОГО К ОПЛАТЕ)
 
-            # Ищем способ оплаты
+        for text in texts:
+            # Ищем суммы
+            total_match = re.findall(r'(\d+[.,]\d{1,2})', text)
+            if total_match:
+                for raw in total_match:
+                    try:
+                        amount = float(raw.replace(',', '.'))
+                    except ValueError:
+                        continue
+
+                    all_amounts.append(amount)
+
+                    text_lower = text.lower()
+                    # Если это явная финальная сумма
+                    if any(kw in text_lower for kw in ["к оплате", "total", "итого к оплате"]):
+                        final_candidates.append(amount)
+                    # Если это просто "ИТОГО" или "ВСЕГО"
+                    elif any(kw in text_lower for kw in ["итого", "всего", "subtotal"]):
+                        subtotal_candidates.append(amount)
+
+            # Определяем способ оплаты
             if 'банк' in text.lower() and ('карт' in text.lower() or 'пл' in text.lower()):
                 totals["payment_method"] = "банковская карта"
             elif 'наличн' in text.lower():
                 totals["payment_method"] = "наличные"
 
+        # Выбираем сумму
+        if final_candidates:
+            totals["total_to_pay"] = min(final_candidates)  # к оплате обычно меньше
+        elif subtotal_candidates:
+            totals["total_to_pay"] = max(subtotal_candidates)  # если нет "к оплате", берём максимум
+        elif all_amounts:
+            totals["total_to_pay"] = max(all_amounts)
+
+        # Определяем subtotal (до скидок) — берём максимум
+        if subtotal_candidates:
+            totals["subtotal"] = max(subtotal_candidates)
+        else:
+            totals["subtotal"] = totals["total_to_pay"]
+
         return totals
 
+
+    def save_to_json(self, parsed_data: Dict[str, Any], filename: str) -> None:
+        """Сохраняет данные в JSON файл"""
+        with open(filename, "w", encoding="utf-8") as f:
+            json.dump(parsed_data, f, ensure_ascii=False, indent=2)
 
 
     def parse_and_save(self, ocr_data: Dict[str, Any], output_file: str) -> Dict[str, Any]:
