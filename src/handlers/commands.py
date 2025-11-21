@@ -1,7 +1,7 @@
 from aiogram import Router, F
 from aiogram.filters import CommandStart, Command
 from aiogram.types import Message
-from ..logic.paddleOCR_logic import save_photo, process_receipt
+from ..logic.paddleOCR_logic import save_photo
 from ..logic.db_logic import Database
 from ..utils.text_parser import parse_message_text
 from ..logic.google_sheets_logic import save_to_sheet
