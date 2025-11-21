@@ -38,29 +38,30 @@ async def process_photo(message: Message):
     file_path = save_photo(photo_bytes, message.message_id)
 
     # Обрабатываем чек (OCR)
-    text_lines = process_receipt(file_path)
+    #text_lines = process_receipt(file_path)
 
-    print("вот итог", text_lines)
+    #print("вот итог", text_lines)
 
-    user = message.from_user
+    #user = message.from_user
 
     # Отправляем результат
 
     # Форматируем красиво
-    text = (
-        f" *Информация о пользователе:*\n\n"
-        f" ID: {user.id}\n"
-        f" Имя: {user.first_name}\n"
-        f" Фамилия: {user.last_name}\n"
-        f" Юзернейм: {user.username}\n"
-        f" Бот: {user.is_bot}\n\n"
-        f"🧾 *Информация о чеке:*\n\n"
-        f"📅 Дата: {text_lines['date']}\n"
-        f"🕒 Время: {text_lines['time']}\n"
-        f"💰 Сумма к оплате: {text_lines['total_sum']} руб."
-    )
+    #text = (
+    #    f" *Информация о пользователе:*\n\n"
+    #    f" ID: {user.id}\n"
+    #    f" Имя: {user.first_name}\n"
+    #    f" Фамилия: {user.last_name}\n"
+    #    f" Юзернейм: {user.username}\n"
+    #    f" Бот: {user.is_bot}\n\n"
+    #    f"🧾 *Информация о чеке:*\n\n"
+    #    f"📅 Дата: {text_lines['date']}\n"
+    #    f"🕒 Время: {text_lines['time']}\n"
+    #    f"💰 Сумма к оплате: {text_lines['total_sum']} руб."
+    #)
 
-    await message.answer(text, parse_mode=None)
+    #await message.answer(text, parse_mode=None)
+    await message.answer(f"✅ Фото чека сохранено!")
 
 
     caption = (message.caption or "").strip() # текст, если есть
@@ -79,7 +80,8 @@ async def process_photo(message: Message):
 
     if caption:
         await message.answer(f"📸 Получено фото с подписью: {caption}\n"
-                             f"✅ Покупка сохранена!\n💰 {parsed['amount']} ₽ - {parsed['product']} - ({parsed['store']})")
+                             f"✅ Покупка сохранена!\n💰 {parsed['amount']} ₽ - {parsed['product']} - ({parsed['store']})"
+                             f"✅ Фото чека сохранено!")
 
     else:
         await message.answer("📸 Фото без подписи.")
@@ -114,10 +116,11 @@ async def process_text(message: Message):
         **parsed
     })
 
+    await save_to_sheet(message.from_user.username, parsed)
+
     if text:
         await message.answer(f"✅ Покупка сохранена!\n💰 {parsed['amount']} ₽ - {parsed['product']} - ({parsed['store']})")
 
     else:
         await message.answer("нет текста")
 
-    await save_to_sheet( message.from_user.username, parsed)

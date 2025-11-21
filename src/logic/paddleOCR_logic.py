@@ -8,7 +8,7 @@ from src.logic.OCRReceiptParser import OCRReceiptParser
 
 # Папка для чеков
 SAVE_DIR = "checks"
-os.makedirs(SAVE_DIR, exist_ok=True)
+#os.makedirs(SAVE_DIR, exist_ok=True)
 
 # OCR-модель (инициализируем один раз при импорте модуля)
 ocr = PaddleOCR(lang="ru")
@@ -28,6 +28,7 @@ def save_photo(photo_file, message_id: int) -> str:
     file_name = os.path.join(SAVE_DIR, f"check_{message_id}.jpg")
     with open(file_name, "wb") as f:
         f.write(photo_file.getvalue())  # Получаем все байты из BytesIO
+
     return file_name
 
 
