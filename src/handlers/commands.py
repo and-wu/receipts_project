@@ -1,8 +1,8 @@
 from aiogram import Router, F
 from aiogram.filters import CommandStart, Command
 from aiogram.types import Message
-from ..logic.paddleOCR_logic import save_photo
 from ..logic.db_logic import Database
+from ..logic.save_photo_logic import save_photo
 from ..utils.text_parser import parse_message_text
 from ..logic.google_sheets_logic import save_to_sheet
 
@@ -26,42 +26,15 @@ async def send_help(message: Message):
 async def process_photo(message: Message):
     await message.answer(f'Обрабатываю полученное фото')
 
-
-    # Берём фото в максимальном качестве
-    photo = message.photo[-1]
-    file = await message.bot.get_file(photo.file_id)
-
-    # Скачиваем в память
-    photo_bytes = await message.bot.download_file(file.file_path, destination=None)
-
     # Сохраняем на диск
-    file_path = save_photo(photo_bytes, message.message_id)
+    file_path = save_photo(message)
 
-    # Обрабатываем чек (OCR)
-    #text_lines = process_receipt(file_path)
+    print(f'фото сохранилось сюда {file_path}')
 
-    #print("вот итог", text_lines)
-
-    #user = message.from_user
-
-    # Отправляем результат
-
-    # Форматируем красиво
-    #text = (
-    #    f" *Информация о пользователе:*\n\n"
-    #    f" ID: {user.id}\n"
-    #    f" Имя: {user.first_name}\n"
-    #    f" Фамилия: {user.last_name}\n"
-    #    f" Юзернейм: {user.username}\n"
-    #    f" Бот: {user.is_bot}\n\n"
-    #    f"🧾 *Информация о чеке:*\n\n"
-    #    f"📅 Дата: {text_lines['date']}\n"
-    #    f"🕒 Время: {text_lines['time']}\n"
-    #    f"💰 Сумма к оплате: {text_lines['total_sum']} руб."
-    #)
-
-    #await message.answer(text, parse_mode=None)
     await message.answer(f"✅ Фото чека сохранено!")
+
+
+
 
 
     caption = (message.caption or "").strip() # текст, если есть
