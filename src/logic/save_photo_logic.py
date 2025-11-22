@@ -15,7 +15,7 @@ async def save_photo(message: Message) -> str:
     photo_bytes = await message.bot.download_file(file.file_path, destination=None)
 
 
-    """Сохраняем фото чека на диск и возвращаем путь"""
+    """Сохраняем фото чека на диск и возвращаем путь """
     file_name = os.path.join(SAVE_DIR, f"check_{message.message_id}.jpg")
     with open(file_name, "wb") as f:
         f.write(photo_bytes.getvalue())  # Получаем все байты из BytesIO

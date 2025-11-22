@@ -26,7 +26,7 @@ async def send_help(message: Message):
 async def process_photo(message: Message):
     await message.answer(f'Обрабатываю полученное фото')
 
-    # Сохраняем на диск
+    # Сохраняем фото на диск
     file_path = save_photo(message)
 
     print(f'фото сохранилось сюда {file_path}')
