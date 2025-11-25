@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 
+from config_data.config import GOOGLE_SERVICE_ACCOUNT_JSON
+
 # Загружаем переменные из .env
 load_dotenv()
 
@@ -19,7 +21,7 @@ scope = [
 
 
 # Читаем JSON из переменной окружения
-key_data = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
+key_data = GOOGLE_SERVICE_ACCOUNT_JSON
 if not key_data:
     raise ValueError("Не найдена переменная окружения GOOGLE_SERVICE_ACCOUNT_JSON")
 
