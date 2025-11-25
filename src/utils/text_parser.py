@@ -2,61 +2,72 @@ import re
 
 def parse_message_text(text: str) -> dict:
     """
-    Разбирает сообщение с суммой, товаром и магазином в любом порядке.
-    Примеры допустимых форматов:
-      - "305 конфеты дикси"
-      - "дикси шоколадка 305"
-      - "305р конфеты в дикси"
-      - "конфеты в дикси 305.50 руб"
+    Разбор текста вида:
+      "305 конфеты дикси"
+      "дикси шоколадка 305"
+      "конфеты в дикси 305.40 руб"
 
-    Возвращает:
-      {
-          "amount": float,
-          "product": str,
-          "store": str
-      }
+    Возвращает словарь с:
+      amount, product, store
     """
+
+    original = text
     text = text.strip().lower()
 
-    # 🔹 1. Находим сумму (число с точкой или запятой, возможно с "р", "руб", "byn")
-    amount_match = re.search(r'(\d+[.,]?\d*)\s*(р|руб|byn|бел|бел\.р)?', text)
+    # =====================================
+    # 1) Ищем сумму
+    # =====================================
+    money_pattern = r'(\d+[.,]?\d*)\s*(?:р|руб|byn|bel|бел|бел\.р|р\.|руб\.)?'
+    amount_match = re.search(money_pattern, text)
+
     if not amount_match:
         raise ValueError("❗ Не удалось определить сумму в сообщении.")
 
-    amount_str = amount_match.group(1).replace(',', '.')
+    amount_str = amount_match.group(1).replace(",", ".")
     amount = float(amount_str)
 
-    # Убираем сумму из текста, чтобы не мешала остальным частям
-    cleaned_text = text.replace(amount_match.group(0), '').strip()
+    # Удаляем сумму из текста
+    cleaned = text.replace(amount_match.group(0), "").strip()
 
-    print(f'сумма - {amount}, строка без суммы - {cleaned_text}')
-
-    # 🔹 2. Ищем возможное название магазина
+    # =====================================
+    # 2) Поиск магазина по слову целиком
+    # =====================================
     store_keywords = [
         "дикси", "евроопт", "соседи", "виталюр", "магнит", "пятерочка", "белмаркет",
-        "светофор", "алми", "green", "prostore", "супермаркет", "market", "перекресток",
-        "вкусвилл", "топливо", "заправка"
+        "светофор", "алми", "green", "prostore", "супермаркет", "market",
+        "перекресток", "вкусвилл", "заправка", "топливо"
     ]
 
     store = ""
-    for keyword in store_keywords:
-        if keyword in cleaned_text:
-            store = keyword.capitalize()
-            cleaned_text = cleaned_text.replace(keyword, '').strip()
+
+    # Ищем магазин как отдельное слово
+    words = cleaned.split()
+
+    for w in words:
+        if w in store_keywords:
+            store = w.capitalize()
+            words.remove(w)        # удаляем магазин из запроса
             break
 
-    print(f'магазин - {store}, строка без суммы и магазина - {cleaned_text}')
+    # =====================================
+    # 3) Очищаем мусор ("в", "на", "из")
+    # =====================================
+    prepositions = {"в", "во", "на", "из", "по", "за"}
+    words = [w for w in words if w not in prepositions]
 
-    # 🔹 3. Остальное — это товар
-    product = cleaned_text.strip()
-    if not product:
-        raise ValueError("❗ Не удалось определить название товара.")
+    # =====================================
+    # 4) Остаток — это товар
+    # =====================================
+    if not words:
+        raise ValueError(f"❗ Не удалось определить товар (исходный текст: {original})")
 
-    print(f'товар - {product}')
+    product = " ".join(words).strip().capitalize()
 
-
+    # =====================================
+    # 5) Формируем результат
+    # =====================================
     return {
         "amount": amount,
-        "product": product.capitalize(),
+        "product": product,
         "store": store or "Неизвестно"
     }
