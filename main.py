@@ -20,7 +20,7 @@ logging.basicConfig(level=logging.INFO)
 dp = Dispatcher()
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode='HTML'))
 
-
+# новый коментарий
 
 async def start():
     dp.include_router(commands_router)
