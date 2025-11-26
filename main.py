@@ -9,7 +9,7 @@ from aiogram.exceptions import TelegramBadRequest
 
 from config_data.config import BOT_TOKEN
 from src.handlers.commands import router as commands_router
-
+from src.handlers.sheet_link import router as sheet_link_router
 from aiogram.client.default import DefaultBotProperties
 
 
@@ -23,7 +23,9 @@ bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode='HTML'))
 # новый коментарий
 
 async def start():
+    dp.include_router(sheet_link_router)
     dp.include_router(commands_router)
+
 
     try:
         # Удаляем возможный вебхук и сбрасываем накопившиеся апдейты

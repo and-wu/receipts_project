@@ -1,20 +1,46 @@
 from aiogram import Router, F
 from aiogram.filters import CommandStart, Command
+from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from ..logic.db_logic import Database
 from ..logic.save_photo_logic import save_photo
+from ..logic.save_sheets_logic import USER_SHEETS
 from ..utils.text_parser import parse_message_text
 from ..logic.google_sheets_logic import save_to_sheet
-
+from aiogram.fsm.state import State, StatesGroup
 
 router = Router()
 
 db = Database()
 
+
+class UserSheetState(StatesGroup):
+    waiting_for_sheet_link = State()
+
+
 # Обработчик команды /start
 @router.message(CommandStart())
-async def send_welcome(message: Message):
-    await message.answer(f"Привет, я бот который умеет считывать информацию с чеков!\nОтправь мне фотографию чека и я пришлю тебе всю информацию с него")
+async def send_welcome(message: Message, state: FSMContext):
+    username = str(message.from_user.id)
+
+    # Проверяем, есть ли пользователь в JSON
+    if username in USER_SHEETS:
+        await message.answer(
+            "Привет! 😊\n"
+            "Я бот, который умеет считывать информацию с чеков!\n"
+            "Отправь мне фотографию чека — и я пришлю тебе данные."
+        )
+        return
+
+    # Если пользователя нет → просим отправить ссылку
+    await message.answer(
+        "👋 Привет! Похоже, ты тут впервые.\n\n"
+        "Чтобы я мог сохранять данные в твою Google-таблицу, пришли мне, пожалуйста, ссылку на неё.\n\n"
+        "📌 Формат: ссылка на Google Sheets с правами *редактирования*."
+    )
+
+    # Устанавливаем состояние
+    await state.set_state(UserSheetState.waiting_for_sheet_link)
 
 
 @router.message(Command("help"))
@@ -86,7 +112,9 @@ async def process_text(message: Message):
         **parsed
     })
 
-    await save_to_sheet(message.from_user.username, parsed)
+    username = str(message.from_user.id)
+    user_id = str(message.from_user.id)
+    await save_to_sheet(username, user_id, parsed)
 
     if text:
         await message.answer(f"✅ Покупка сохранена!\n💰 {parsed['amount']} ₽ - {parsed['product']} - ({parsed['store']})")

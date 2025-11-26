@@ -8,6 +8,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 
 from config_data.config import GOOGLE_SERVICE_ACCOUNT_JSON
+from src.logic.save_sheets_logic import USER_SHEETS
 
 # Загружаем переменные из .env
 load_dotenv()
@@ -35,38 +36,45 @@ client = gspread.authorize(creds)
 sheet = client.open("receipts_sheets").sheet1  # можно по ID, если нужно
 
 
-async def save_to_sheet(user_name: str, data: dict, photo_path: str | None = None) -> bool:
+async def save_to_sheet(username: str, user_id: str, data: dict, photo_path: str | None = None) -> bool:
     """
-    Сохраняет запись о покупке в Google Таблицу
-
-    Args:
-        user_name: имя пользователя
-        data: словарь с ключами amount, product, store
-        photo_path: путь к файлу чека (на диске)
-
-    Returns:
-        bool
+    Сохраняет запись в Google Sheets для конкретного пользователя.
+    Таблица выбирается из user_sheets.json по user_id
     """
+    print(f'username - {username}, user_id - {user_id}')
     try:
-        # Валидация
+        # 🔍 Проверяем, есть ли таблица для этого пользователя
+        if user_id not in USER_SHEETS:
+            return False, "❌ Для этого пользователя нет связанной Google-таблицы."
+
+        sheet_link = USER_SHEETS[user_id]
+
+        try:
+            # 🔗 Открываем таблицу по ссылке
+            spreadsheet = client.open_by_url(sheet_link)
+            sheet = spreadsheet.sheet1
+        except Exception as e:
+            return False, f"❌ Не удалось открыть таблицу: {e}"
+
+        # Валидация данных
         required_fields = ["product", "amount", "store"]
         missing = [f for f in required_fields if f not in data]
         if missing:
             return False, f"❌ Отсутствуют поля: {', '.join(missing)}"
 
-        # Подготовка данных
+        # Формируем строку
         now = datetime.now()
         row = [
-            now.strftime("%d.%m.%Y"),
-            now.strftime("%H:%M"),
-            user_name,
-            str(data["product"]),
-            data["amount"],  # оставляем как число
-            str(data["store"]),
-            photo_path if photo_path else "нет фото"  # путь к фото чека
+            now.strftime("%d.%m.%Y"),   # Дата
+            now.strftime("%H:%M"),      # Время
+            username,                   # Пользователь
+            str(data["product"]),       # Товар
+            data["amount"],             # Сумма
+            str(data["store"]),         # Магазин
+            photo_path if photo_path else "нет фото"
         ]
 
-        # Запись в таблицу
+        # Запись в Google Sheets
         await asyncio.to_thread(sheet.append_row, row)
 
         print("Запись добавлена ✅")
@@ -74,4 +82,4 @@ async def save_to_sheet(user_name: str, data: dict, photo_path: str | None = Non
 
     except Exception as e:
         logger.error(f"Error saving to sheet: {e}", exc_info=True)
-        print(f"❌ Ошибка записи: {str(e)}")
+        return False, f"❌ Ошибка записи: {str(e)}"
