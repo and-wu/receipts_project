@@ -94,7 +94,9 @@ async def process_photo(message: Message):
         await message.answer("📸 Фото без подписи.")
 
 
-    await save_to_sheet(message.from_user.username, parsed, photo_path=file_path)
+    username = str(message.from_user.name)
+    user_id = str(message.from_user.id)
+    await save_to_sheet(username, user_id, parsed, photo_path=file_path)
 
 
 @router.message(F.text)
@@ -115,7 +117,7 @@ async def process_text(message: Message):
         **parsed
     })
 
-    username = str(message.from_user.id)
+    username = str(message.from_user.username)
     user_id = str(message.from_user.id)
     await save_to_sheet(username, user_id, parsed)
 
