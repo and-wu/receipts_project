@@ -57,7 +57,7 @@ async def save_to_sheet(username: str, user_id: str, data: dict, photo_path: str
             return False, f"❌ Не удалось открыть таблицу: {e}"
 
         # Валидация данных
-        required_fields = ["product", "amount", "store"]
+        required_fields = ["product", "amount", "store", "currency"]
         missing = [f for f in required_fields if f not in data]
         if missing:
             return False, f"❌ Отсутствуют поля: {', '.join(missing)}"
@@ -70,6 +70,7 @@ async def save_to_sheet(username: str, user_id: str, data: dict, photo_path: str
             username,                   # Пользователь
             str(data["product"]),       # Товар
             data["amount"],             # Сумма
+            data["currency"],           # Валюта
             str(data["store"]),         # Магазин
             photo_path if photo_path else "нет фото"
         ]

@@ -5,7 +5,7 @@ from aiogram.types import Message
 from ..logic.db_logic import Database
 from ..logic.save_photo_logic import save_photo
 from ..logic.save_sheets_logic import USER_SHEETS
-from ..utils.text_parser import parse_message_text
+from ..utils.text_parser_new import parse_message_text
 from ..logic.google_sheets_logic import save_to_sheet
 from aiogram.fsm.state import State, StatesGroup
 
@@ -122,7 +122,7 @@ async def process_text(message: Message):
     await save_to_sheet(username, user_id, parsed)
 
     if text:
-        await message.answer(f"✅ Покупка сохранена!\n💰 {parsed['amount']} ₽ - {parsed['product']} - ({parsed['store']})")
+        await message.answer(f"✅ Покупка сохранена!\n💰 {parsed['amount']} {parsed['currency']} - {parsed['product']} - ({parsed['store']})")
 
     else:
         await message.answer("нет текста")
