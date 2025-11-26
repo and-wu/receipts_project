@@ -27,8 +27,11 @@ async def send_welcome(message: Message, state: FSMContext):
     if username in USER_SHEETS:
         await message.answer(
             "Привет! 😊\n"
-            "Я бот, который умеет считывать информацию с чеков!\n"
-            "Отправь мне фотографию чека — и я пришлю тебе данные."
+            "Я бот, который ведет учет твоих расходом!\n"
+            "Отправь мне информацию о твоей покупки, и я сохраню все в гугл-таблицу.\n"
+            "жду инфу в таком формате - товар магазин сумма\n"
+            "например - 'продукты дикси 780' или 'топливо 900 заправка'\n"
+            "также можешь приложить фото чека и я сохраню его"
         )
         return
 
@@ -45,7 +48,7 @@ async def send_welcome(message: Message, state: FSMContext):
 
 @router.message(Command("help"))
 async def send_help(message: Message):
-    await message.answer(f"я бот который считывает инфу с чета, просто пришли мне его фото")
+    await message.answer(f"я бот который ведет учет твоих расходом")
 
 
 @router.message(F.photo)
